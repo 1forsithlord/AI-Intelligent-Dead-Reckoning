@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IDR — 60s Live Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#05080f; --fg:#e9eefa; --muted:#8294b5; --dim:#5d6c8c;
+    --line:rgba(255,255,255,.09); --line2:rgba(255,255,255,.16);
+    --blue:#4d9dff; --green:#20d98a; --amber:#ffb224; --red:#ff5b5b; --violet:#ab8cff; --orange:#ff8c5a;
+    --glass:linear-gradient(160deg,rgba(255,255,255,.07),rgba(255,255,255,.022));
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--fg);font-family:Inter,system-ui,sans-serif;
+       display:flex;align-items:center;justify-content:center;padding:14px;-webkit-font-smoothing:antialiased}
+  .shell{width:100%;max-width:1060px}
+  .stage{position:relative;width:100%;aspect-ratio:16/9;border:1px solid var(--line2);border-radius:18px;
+    overflow:hidden;background:radial-gradient(120% 110% at 50% -10%,#18253f 0%,#0a1020 45%,#04060d 100%);
+    box-shadow:0 34px 80px -34px #000,inset 0 1px 0 rgba(255,255,255,.07)}
+  #inner{position:absolute;inset:0;will-change:transform}
+  .grid{position:absolute;inset:0;opacity:.3;
+    background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
+    background-size:42px 42px;mask-image:radial-gradient(100% 90% at 50% 40%,#000 30%,transparent 100%)}
+  .scene{position:absolute;inset:0;opacity:0;display:flex;flex-direction:column;padding:2.6% 3.2%}
+  .scene.on{opacity:1}
+  h1{font-family:"Space Grotesk",sans-serif;font-weight:700;letter-spacing:-.025em;line-height:1.03}
+  .mono{font-family:"JetBrains Mono",monospace}
+  .k{font-family:"JetBrains Mono",monospace;letter-spacing:.26em;text-transform:uppercase;
+     font-size:clamp(7px,.92vw,11px);color:var(--dim)}
+  .t7{font-size:clamp(6.5px,.8vw,9.5px)} .t9{font-size:clamp(8px,.98vw,11.5px)}
+  .t12{font-size:clamp(9.5px,1.2vw,14px)}
+  svg{display:block;overflow:visible}
+
+  /* header */
+  .hdr{flex:none;display:flex;align-items:center;gap:.7em;padding-bottom:1.6%;
+       border-bottom:1px solid var(--line)}
+  .logo{width:1.6em;height:1.6em;border-radius:7px;background:linear-gradient(140deg,var(--blue),var(--green));
+    display:grid;place-items:center;font-size:clamp(8px,1vw,12px);color:#04070e;font-weight:700;flex:none}
+  .pill{margin-left:auto;display:inline-flex;align-items:center;gap:.45em;border:1px solid;border-radius:99px;
+    padding:.28em .75em;font-family:"JetBrains Mono",monospace;letter-spacing:.12em;text-transform:uppercase}
+
+  /* body */
+  .body{flex:1;display:flex;gap:2.6%;min-height:0;padding-top:2%}
+  .col{display:flex;flex-direction:column;min-width:0;min-height:0}
+  .card{background:var(--glass);border:1px solid var(--line);border-radius:12px;padding:3.4% 4%}
+  .phonewrap{flex:none;height:100%;display:flex;align-items:center;justify-content:center}
+  .phone{height:100%;aspect-ratio:9/19.2;border-radius:22px;background:#04070e;position:relative;
+    display:flex;flex-direction:column;overflow:hidden;
+    border:1.5px solid rgba(255,255,255,.2);
+    box-shadow:0 0 0 4px rgba(255,255,255,.04),0 0 0 5px rgba(0,0,0,.6),0 26px 50px -20px #000}
+  .notch{position:absolute;top:5px;left:50%;transform:translateX(-50%);width:34%;height:10px;
+    background:#04070e;border-radius:99px;z-index:4}
+  .pbar{flex:none;padding:8% 7% 4%}
+  .pmap{flex:1;position:relative;overflow:hidden;background:#060b14}
+  .pmap svg{width:100%;height:100%}
+  .pcard{flex:none;padding:5% 7% 7%;border-top:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.035)}
+  .mchip{display:inline-flex;align-items:center;gap:.4em;border-radius:99px;padding:.3em .7em;border:1px solid;
+    font-family:"JetBrains Mono",monospace;letter-spacing:.09em;text-transform:uppercase}
+
+  .row{display:flex;align-items:center;gap:.55em;border:1px solid var(--line);border-radius:9px;
+    padding:.46em .6em;background:rgba(255,255,255,.03);opacity:.3;transition:none}
+  .dot{width:6px;height:6px;border-radius:50%;background:#3d4a66;flex:none}
+  .meter{height:5px;border-radius:99px;background:rgba(255,255,255,.09);overflow:hidden}
+  .meter i{display:block;height:100%;width:0;border-radius:99px}
+
+  .ov{position:absolute;inset:0;pointer-events:none}
+  #vign{box-shadow:inset 0 0 130px 26px rgba(255,70,70,.5);opacity:0}
+  #flash{background:radial-gradient(52% 52% at 50% 50%,rgba(255,255,255,.95),transparent 72%);opacity:0}
+  #glitch{opacity:0;background:repeating-linear-gradient(0deg,rgba(255,70,70,.17) 0 2px,transparent 2px 5px)}
+  #sweep{opacity:0;height:20%;background:linear-gradient(180deg,transparent,rgba(77,157,255,.4),transparent)}
+  #scan{position:absolute;inset:0;opacity:.06;pointer-events:none;
+    background:repeating-linear-gradient(0deg,rgba(255,255,255,.55) 0 1px,transparent 1px 3px)}
+
+  .bar{display:flex;align-items:center;gap:10px;margin-top:11px}
+  .btn{width:38px;height:38px;flex:none;border-radius:50%;border:1px solid var(--line2);
+    background:rgba(255,255,255,.06);color:var(--fg);cursor:pointer;display:grid;place-items:center}
+  .btn:hover{background:rgba(255,255,255,.14)}
+  .track{position:relative;flex:1;height:20px;cursor:pointer;display:flex;align-items:center}
+  .rail{position:absolute;left:0;right:0;height:5px;border-radius:99px;background:rgba(255,255,255,.12)}
+  .prog{position:absolute;left:0;height:5px;border-radius:99px;background:linear-gradient(90deg,var(--blue),var(--green));width:0}
+  .tick{position:absolute;width:2px;height:10px;background:rgba(255,255,255,.3);border-radius:2px}
+  .time{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--muted);flex:none;min-width:76px;text-align:right}
+  .chap{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--dim);letter-spacing:.16em;
+    text-transform:uppercase;margin-top:8px;text-align:center}
+  #poster{position:absolute;inset:0;display:grid;place-items:center;background:rgba(4,6,13,.85);
+    backdrop-filter:blur(4px);cursor:pointer;z-index:9;text-align:center}
+  .pbtn{width:66px;height:66px;border-radius:50%;background:var(--blue);color:#04070e;display:grid;
+    place-items:center;margin:0 auto 14px;box-shadow:0 0 0 12px rgba(77,157,255,.13)}
+  @media (max-width:620px){.btn{width:33px;height:33px}.time{min-width:66px;font-size:11px}}
+</style>
+</head>
+<body>
+<div class="shell">
+<div class="stage" id="stage">
+ <div id="inner">
+  <div class="grid"></div>
+
+  <!-- TITLE -->
+  <div class="scene" id="sTitle" style="justify-content:center;align-items:center;text-align:center">
+    <div class="k" id="tk" style="color:var(--blue)">Smart India Hackathon 2026</div>
+    <h1 id="tt" style="font-size:clamp(20px,4.4vw,54px);margin-top:.5em;max-width:16ch">Intelligent Dead Reckoning</h1>
+    <div id="ts" style="color:var(--muted);margin-top:.85em;font-size:clamp(10px,1.35vw,16px)">
+      60 seconds. One tunnel. Zero satellites.</div>
+  </div>
+
+  <!-- DEMO -->
+  <div class="scene" id="sDemo">
+    <div class="hdr">
+      <div class="logo">◈</div>
+      <div>
+        <div class="t9" style="font-weight:700;letter-spacing:-.01em">IDR Navigation Engine</div>
+        <div class="mono t7" style="color:var(--dim);letter-spacing:.16em">EDGE · ON-DEVICE · NO OBD-II</div>
+      </div>
+      <div class="pill t7" id="pill" style="color:var(--green);border-color:rgba(32,217,138,.45);background:rgba(32,217,138,.1)">
+        <span id="pilldot">●</span><span id="pilltxt">SYSTEM NOMINAL</span></div>
+      <div class="mono t7" style="color:var(--dim);letter-spacing:.14em;flex:none" id="stageno">01 / 06</div>
+    </div>
+
+    <div class="body">
+      <!-- LEFT -->
+      <div class="col" style="flex:1.02">
+        <div style="min-height:5.6em">
+          <div id="dhead" style="font-family:'Space Grotesk';font-weight:700;letter-spacing:-.015em;
+               font-size:clamp(13px,2vw,26px);line-height:1.1">Locked on GNSS</div>
+          <div id="dsub" class="t12" style="color:var(--muted);margin-top:.5em;line-height:1.42"></div>
+        </div>
+
+        <div class="card" style="margin-top:auto">
+          <div class="mono t7" style="display:flex;justify-content:space-between;color:var(--dim);letter-spacing:.14em">
+            <span>IMU STREAM · ACCEL Z</span><span id="hz">200 HZ</span></div>
+          <svg viewBox="0 0 240 44" style="width:100%;height:auto;margin-top:.5em">
+            <line x1="0" y1="22" x2="240" y2="22" stroke="rgba(255,255,255,.07)"/>
+            <polyline id="wRaw" fill="none" stroke="#ff5b5b" stroke-width="1.3" opacity=".8"/>
+            <polyline id="wFil" fill="none" stroke="#20d98a" stroke-width="1.9" opacity="0"/>
+          </svg>
+        </div>
+
+        <div class="card" style="margin-top:4%">
+          <div class="mono t7" style="display:flex;justify-content:space-between;color:var(--red);letter-spacing:.13em">
+            <span>RAW INS · UNCORRECTED</span><span id="e1">0 m</span></div>
+          <div class="meter" style="margin-top:.4em"><i id="b1" style="background:linear-gradient(90deg,#ff8c5a,#ff5b5b)"></i></div>
+          <div class="mono t7" style="display:flex;justify-content:space-between;color:var(--green);margin-top:.9em;letter-spacing:.13em">
+            <span>IDR ENGINE · CORRECTED</span><span id="e2">0 m</span></div>
+          <div class="meter" style="margin-top:.4em"><i id="b2" style="background:linear-gradient(90deg,#4d9dff,#20d98a)"></i></div>
+        </div>
+      </div>
+
+      <!-- PHONE -->
+      <div class="phonewrap">
+        <div class="phone" id="phone">
+          <div class="notch"></div>
+          <div class="pbar">
+            <span class="mchip t7" id="mode" style="color:var(--green);border-color:var(--green);background:rgba(32,217,138,.1)">
+              <span>●</span> GNSS + INS</span>
+            <div class="mono t7" style="display:flex;justify-content:space-between;color:var(--dim);margin-top:.6em;letter-spacing:.1em">
+              <span id="sats">SAT 12</span><span id="acc">±3.0 M</span></div>
+          </div>
+          <div style="padding:0 7%;margin-top:2.6%;flex:none">
+            <div style="position:relative;height:5px;border-radius:99px;background:rgba(255,255,255,.09)">
+              <div id="sigdead" style="position:absolute;top:0;bottom:0;left:20.4%;width:62.2%;background:rgba(255,91,91,.4);border-radius:99px"></div>
+              <div id="sigdot" style="position:absolute;top:50%;left:0%;width:8px;height:8px;margin-top:-4px;margin-left:-4px;
+                   border-radius:50%;background:#4d9dff;box-shadow:0 0 6px rgba(77,157,255,.85)"></div>
+            </div>
+            <div class="mono t7" style="display:flex;justify-content:space-between;color:var(--dim);margin-top:.4em;letter-spacing:.06em">
+              <span>TRIP START</span><span id="sigzonelbl" style="color:var(--dim)">TUNNEL AHEAD</span><span>TRIP END</span>
+            </div>
+          </div>
+          <div class="pmap">
+            <svg viewBox="0 0 200 350" id="mapsvg">
+              <defs>
+                <path id="route" d="M180 1400 L180 1100 Q180 1024 256 1002 L488 938 Q564 916 564 840 L564 584 Q564 508 488 486 L276 426 Q200 404 200 328 L200 -320"/>
+                <radialGradient id="gDot"><stop offset="0" stop-color="#4d9dff"/><stop offset="1" stop-color="#4d9dff" stop-opacity="0"/></radialGradient>
+                <filter id="glow"><feGaussianBlur stdDeviation="2.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+              </defs>
+              <g id="world">
+                <g id="cityProps"></g>
+                <use href="#route" stroke="#18233a" stroke-width="30" fill="none" stroke-linecap="round"/>
+                <use href="#route" stroke="#22304d" stroke-width="1" stroke-dasharray="7 9" fill="none" opacity=".7"/>
+                <use href="#route" id="tunnelSeg" stroke="#070b14" stroke-width="31" fill="none"
+                     stroke-linecap="butt" stroke-dasharray="0 340 1037 99999"/>
+                <g id="tunnelCasing"></g>
+                <g id="tunnelLights"></g>
+                <polyline id="trailTrue" fill="none" stroke="#4d9dff" stroke-width="3.2" stroke-linecap="round" opacity=".92"/>
+                <polyline id="trailGhost" fill="none" stroke="#ff5b5b" stroke-width="2.4" stroke-dasharray="5 5" opacity="0"/>
+                <g id="ghostDot" opacity="0"><circle r="4.2" fill="#ff5b5b" opacity=".9"/></g>
+                <g id="snapRing" opacity="0"><circle r="10" fill="none" stroke="#20d98a" stroke-width="2.4"/></g>
+                <g id="sparks"></g>
+                <g id="portals"></g>
+              </g>
+              <circle cx="100" cy="248" r="24" fill="url(#gDot)" opacity=".5" id="halo"/>
+              <g transform="translate(100,248)" id="car" filter="url(#glow)">
+                <circle r="8" fill="#fff" opacity=".12"/>
+                <path d="M0 -8.5 L6.5 7.5 L0 3.8 L-6.5 7.5 Z" fill="#4d9dff" id="carArrow"/>
+              </g>
+              <text id="tunlbl" x="100" y="26" text-anchor="middle" class="mono"
+                    style="font-size:7.5px;letter-spacing:.2em" fill="#8294b5" opacity="0">TUNNEL · 1.2 KM</text>
+            </svg>
+          </div>
+          <div class="pcard">
+            <div style="display:flex;align-items:center;gap:.55em">
+              <span style="color:var(--blue);font-size:clamp(12px,1.6vw,20px);line-height:1">↱</span>
+              <div style="min-width:0">
+                <div class="t12" style="font-weight:700" id="turnD">600 m</div>
+                <div class="t7" style="color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Turn right onto NH-48</div>
+              </div>
+            </div>
+            <div class="mono t7" style="display:flex;justify-content:space-between;color:var(--dim);margin-top:.7em;letter-spacing:.1em">
+              <span id="eta">2.4 KM · 12 MIN</span><span id="fixlbl" style="color:var(--green)">FIX OK</span></div>
+          </div>
+          <div class="ov" id="phoneAlert" style="opacity:0;border:2px solid var(--red);border-radius:21px;background:rgba(255,70,70,.1)"></div>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div class="col" style="flex:1">
+        <div class="mono t7" style="color:var(--dim);letter-spacing:.2em">ENGINE MODULES</div>
+        <div id="mods" style="margin-top:.7em;display:flex;flex-direction:column;gap:2.6%"></div>
+        <div class="card" style="margin-top:auto">
+          <div class="mono t7" style="color:var(--dim);letter-spacing:.16em">POSITION SOURCE</div>
+          <div id="srcline" class="t9" style="margin-top:.45em;font-weight:600;color:var(--green)">GNSS fix + inertial smoothing</div>
+          <div class="mono t7" style="color:var(--dim);margin-top:.6em;letter-spacing:.1em" id="srcsub">12 satellites · 10 Hz output</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- END -->
+  <div class="scene" id="sEnd" style="justify-content:center;align-items:center;text-align:center">
+    <div class="k" id="ek" style="color:var(--green)">Result</div>
+    <h1 id="et" style="font-size:clamp(17px,3.2vw,40px);margin-top:.5em;max-width:20ch">The blue dot never left the road.</h1>
+    <div id="estats" style="display:flex;gap:7%;margin-top:1.8em;opacity:0">
+      <div><div class="mono" style="font-size:clamp(18px,3.4vw,42px);color:var(--red)">183 m</div>
+           <div class="mono t7" style="color:var(--dim);letter-spacing:.16em;margin-top:.5em">RAW INS DRIFT</div></div>
+      <div style="width:1px;background:var(--line)"></div>
+      <div><div class="mono" style="font-size:clamp(18px,3.4vw,42px);color:var(--green)">4.1 m</div>
+           <div class="mono t7" style="color:var(--dim);letter-spacing:.16em;margin-top:.5em">WITH IDR ENGINE</div></div>
+    </div>
+    <div id="es" class="t12" style="color:var(--muted);margin-top:1.8em;opacity:0">
+      1.2 km of tunnel · zero satellites · no extra hardware</div>
+  </div>
+ </div>
+
+ <div class="ov" id="glitch"></div><div class="ov" id="vign"></div>
+ <div class="ov" id="flash"></div><div class="ov" id="sweep"></div><div id="scan"></div>
+
+ <div id="poster"><div>
+   <div class="pbtn"><svg viewBox="0 0 24 24" width="25" height="25" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
+   <div class="mono" style="font-size:11px;letter-spacing:.22em;color:#cfe0ff">PLAY WITH SOUND</div>
+ </div></div>
+</div>
+
+<div class="bar">
+  <button class="btn" id="play"><svg id="icon" viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
+  <button class="btn" id="mute"><svg id="micon" viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M4 9v6h4l5 4V5L8 9H4zm12.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z"/></svg></button>
+  <div class="track" id="track"><div class="rail"></div><div class="prog" id="prog"></div></div>
+  <div class="time" id="time">0:00 / 1:00</div>
+</div>
+<div class="chap" id="chap"></div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+const inv=(t,a,b)=>clamp((t-a)/((b-a)||1),0,1);
+const eo=x=>1-Math.pow(1-x,3), eio=x=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;
+const lerp=(a,b,x)=>a+(b-a)*x;
+const rnd=(i,s)=>{const v=Math.sin(i*12.9898+s*78.233)*43758.5453;return v-Math.floor(v);};
+function fade(el,t,s,d,dy){const p=eo(inv(t,s,s+(d||.5)));el.style.opacity=p;
+  if(dy!==0)el.style.transform='translateY('+lerp(dy===undefined?11:dy,0,p).toFixed(2)+'px)';return p;}
+
+/* ---------- AUDIO ---------- */
+let AC=null,master=null,ambGain=null,nb=null,muted=false,riser=null,rg=null;
+function initAudio(){
+  if(AC)return;
+  AC=new (window.AudioContext||window.webkitAudioContext)();
+  master=AC.createGain();master.gain.value=.55;master.connect(AC.destination);
+  const n=AC.sampleRate*2;nb=AC.createBuffer(1,n,AC.sampleRate);
+  const d=nb.getChannelData(0);for(let i=0;i<n;i++)d[i]=Math.random()*2-1;
+  ambGain=AC.createGain();ambGain.gain.value=0;ambGain.connect(master);
+  [55,82.5,110].forEach((f,i)=>{const o=AC.createOscillator();o.type='sine';o.frequency.value=f;
+    const g=AC.createGain();g.gain.value=[.5,.2,.1][i];o.connect(g);g.connect(ambGain);o.start();});
+  const s=AC.createBufferSource();s.buffer=nb;s.loop=true;
+  const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.value=400;
+  const g=AC.createGain();g.gain.value=.07;s.connect(f);f.connect(g);g.connect(ambGain);s.start();
+}
+function tone(fr,dur,ty,vol,to){if(!AC||muted)return;const t=AC.currentTime;
+  const o=AC.createOscillator(),g=AC.createGain();o.type=ty||'sine';o.frequency.setValueAtTime(fr,t);
+  if(to)o.frequency.exponentialRampToValueAtTime(to,t+dur);
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol||.2,t+.012);
+  g.gain.exponentialRampToValueAtTime(.0008,t+dur);o.connect(g);g.connect(master);o.start(t);o.stop(t+dur+.05);}
+function noise(dur,vol,f1,f2,ty){if(!AC||muted)return;const t=AC.currentTime;
+  const s=AC.createBufferSource();s.buffer=nb;const fl=AC.createBiquadFilter();
+  fl.type=ty||'bandpass';fl.frequency.setValueAtTime(f1,t);
+  if(f2)fl.frequency.exponentialRampToValueAtTime(f2,t+dur);fl.Q.value=1.1;
+  const g=AC.createGain();g.gain.setValueAtTime(vol||.2,t);g.gain.exponentialRampToValueAtTime(.0008,t+dur);
+  s.connect(fl);fl.connect(g);g.connect(master);s.start(t);s.stop(t+dur+.05);}
+function startRiser(){if(!AC||muted||riser)return;const t=AC.currentTime;
+  riser=AC.createOscillator();riser.type='sawtooth';riser.frequency.setValueAtTime(75,t);
+  riser.frequency.exponentialRampToValueAtTime(340,t+13);
+  const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.value=900;
+  rg=AC.createGain();rg.gain.setValueAtTime(0,t);rg.gain.linearRampToValueAtTime(.07,t+4);
+  riser.connect(f);f.connect(rg);rg.connect(master);riser.start();}
+function stopRiser(){if(!riser)return;const t=AC.currentTime;
+  try{rg.gain.linearRampToValueAtTime(0,t+.2);riser.stop(t+.3);}catch(e){}riser=null;rg=null;}
+
+/* ---------- CONTENT ---------- */
+const MODULES=[
+  ['Vibration Filter','1D CNN / LSTM','#20d98a'],
+  ['Misalignment Detector','auto axis alignment','#ab8cff'],
+  ['Speed Predictor','IMU + map context','#ffb224'],
+  ['Adaptive UKF / EKF','state propagation','#4d9dff'],
+  ['NHC Constraint','no slide, no flight','#ff8c5a'],
+  ['HMM + Viterbi','OSM map matching','#20d98a']
+];
+(function(){const g=$('mods');MODULES.forEach(m=>{const d=document.createElement('div');d.className='row';
+  d.innerHTML='<span class="dot"></span><div style="min-width:0"><div class="t9" style="font-weight:600">'+m[0]+
+   '</div><div class="mono t7" style="color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+m[1]+
+   '</div></div><span class="mono t7" style="margin-left:auto;color:'+m[2]+';opacity:0;letter-spacing:.12em">ON</span>';
+  g.appendChild(d);});})();
+const rows=[...document.querySelectorAll('#mods .row')];
+const NS='http://www.w3.org/2000/svg';
+for(let i=0;i<14;i++){const c=document.createElementNS(NS,'circle');c.setAttribute('r',1.7);
+  c.setAttribute('fill','#20d98a');c.setAttribute('opacity','0');$('sparks').appendChild(c);}
+const sparks=[...$('sparks').children];
+
+/* ---------- TIMELINE (60 s) ---------- */
+const T0=5, T1=54, DUR=60, SPEED=34;
+const CH=[{t:0,n:'Intelligent Dead Reckoning'},{t:5,n:'Normal navigation · GNSS + INS'},
+  {t:15,n:'Signal lost'},{t:17,n:'AI dead reckoning engages'},{t:24,n:'Drift, uncorrected'},
+  {t:33,n:'NHC + map matching'},{t:45,n:'GNSS re-acquired'},{t:54,n:'Result'}];
+const SUBS=[
+  [0,'Adaptive UKF/EKF fuses satellite fixes with inertial data. Accuracy holds at 3 m.'],
+  [8,'Tunnel ahead — sky view is about to vanish.'],
+  [10,'Zero satellites. A normal app freezes the blue dot right here.'],
+  [12,'Instant handover. No re-lock wait, no cloud call — all on the phone.'],
+  [13.5,'Specialist models clean and interpret the raw inertial stream.'],
+  [19,'Left uncorrected, integrated IMU error compounds within seconds.'],
+  [28,'NHC prunes impossible states — the vehicle cannot slide sideways.'],
+  [32,'Viterbi picks the likeliest road sequence. Trajectory snaps back.'],
+  [40,'Sky returns. GNSS re-acquires and blends in with no visible jump.']
+];
+const HEADS=[[0,'Locked on GNSS'],[10,'GNSS lost'],[12,'AI Dead Reckoning'],[19,'Drift, uncorrected'],
+  [28,'Constraining the impossible'],[32,'Snapped to the road'],[40,'GNSS re-acquired']];
+const STAGES=[[0,'01 / 06'],[10,'02 / 06'],[12,'03 / 06'],[19,'04 / 06'],[28,'05 / 06'],[40,'06 / 06']];
+
+function df(x){ if(x<=10)return 0;
+  let g=Math.min(1,Math.pow((x-10)/14,1.5));
+  if(x>28)g*=1-.3*inv(x,28,32);
+  if(x>32)g*=1-eio(inv(x,32,35.5));
+  return g;}
+function rawM(x){return x<=10?0:Math.min(183,Math.pow(x-10,1.62)*3.1);}
+
+const routeEl=$('route');let RL=2000;
+const pt=s=>routeEl.getPointAtLength(clamp(s,0,RL));
+const headAt=s=>{const a=pt(s-1.2),b=pt(s+1.2);return Math.atan2(b.y-a.y,b.x-a.x);};
+function ghostAt(x){const s=SPEED*x,p=pt(s),h=headAt(s),f=df(x);
+  const nx=Math.sin(h),ny=-Math.cos(h);
+  const lat=58*f+6*f*Math.sin(x*2.1),fwd=16*f*Math.sin(x*1.2);
+  return{x:p.x+nx*lat+Math.cos(h)*fwd,y:p.y+ny*lat+Math.sin(h)*fwd};}
+
+/* ---------- WORLD DECOR: tunnel casing, city props, signal strip ---------- */
+const TUN_S0=340, TUN_S1=1377, STRIP_TOTAL=SPEED*(T1-T0);
+function buildTunnel(){
+  const left=[],right=[];
+  for(let s=TUN_S0;s<=TUN_S1;s+=13){
+    const p=pt(s),h=headAt(s),nx=Math.sin(h),ny=-Math.cos(h),w=18;
+    left.push((p.x+nx*w).toFixed(1)+','+(p.y+ny*w).toFixed(1));
+    right.push((p.x-nx*w).toFixed(1)+','+(p.y-ny*w).toFixed(1));
+  }
+  const poly=document.createElementNS(NS,'polygon');
+  poly.setAttribute('points',left.concat(right.reverse()).join(' '));
+  poly.setAttribute('fill','#060911');poly.setAttribute('stroke','#22304d');
+  poly.setAttribute('stroke-width','1.6');poly.setAttribute('opacity','.97');
+  $('tunnelCasing').appendChild(poly);
+  for(let s=TUN_S0+45;s<TUN_S1-20;s+=92){
+    const p=pt(s),h=headAt(s),nx=Math.sin(h),ny=-Math.cos(h);
+    const l=document.createElementNS(NS,'line');
+    l.setAttribute('x1',(p.x-nx*12).toFixed(1));l.setAttribute('y1',(p.y-ny*12).toFixed(1));
+    l.setAttribute('x2',(p.x+nx*12).toFixed(1));l.setAttribute('y2',(p.y+ny*12).toFixed(1));
+    l.setAttribute('stroke','#3d5580');l.setAttribute('stroke-width','2.2');
+    l.setAttribute('stroke-linecap','round');l.setAttribute('opacity','.6');
+    $('tunnelLights').appendChild(l);
+  }
+  [TUN_S0,TUN_S1].forEach(s=>{
+    const p=pt(s),hDeg=headAt(s)*180/Math.PI;
+    const g=document.createElementNS(NS,'g');
+    g.setAttribute('transform','translate('+p.x.toFixed(1)+','+p.y.toFixed(1)+') rotate('+(hDeg+90).toFixed(1)+')');
+    g.innerHTML='<path d="M-19 -2 a19 15 0 0 1 38 0" fill="none" stroke="#5d7aab" stroke-width="3"/>'+
+                '<rect x="-19" y="-2" width="38" height="17" fill="#060911" opacity=".95"/>'+
+                '<path d="M-19 -2 a19 15 0 0 1 38 0" fill="none" stroke="#7590bf" stroke-width="1.3" opacity=".85"/>';
+    $('portals').appendChild(g);
+  });
+}
+function buildCity(){
+  const spots=[[60,1,1],[150,-1,2],[245,1,3],[1420,-1,4],[1500,1,5],[1580,-1,6],[1625,1,7]];
+  spots.forEach(([s,side,seed])=>{
+    const p=pt(s),h=headAt(s),nx=Math.sin(h),ny=-Math.cos(h);
+    const off=44+(seed*9)%20,bx=p.x+nx*off*side,by=p.y+ny*off*side;
+    const w=24+(seed*11)%22,ht=28+(seed*13)%28;
+    const rect=document.createElementNS(NS,'rect');
+    rect.setAttribute('x',(bx-w/2).toFixed(1));rect.setAttribute('y',(by-ht/2).toFixed(1));
+    rect.setAttribute('width',w);rect.setAttribute('height',ht);rect.setAttribute('rx',3);
+    rect.setAttribute('fill','#131e33');rect.setAttribute('stroke','#223357');
+    rect.setAttribute('stroke-width','1');rect.setAttribute('opacity','.85');
+    $('cityProps').appendChild(rect);
+  });
+  const pp=pt(190),hh=headAt(190),pnx=Math.sin(hh),pny=-Math.cos(hh);
+  const park=document.createElementNS(NS,'ellipse');
+  park.setAttribute('cx',(pp.x-pnx*70).toFixed(1));park.setAttribute('cy',(pp.y-pny*70).toFixed(1));
+  park.setAttribute('rx',34);park.setAttribute('ry',26);
+  park.setAttribute('fill','#132a1f');park.setAttribute('stroke','#1f4a35');
+  park.setAttribute('stroke-width','1');park.setAttribute('opacity','.8');
+  $('cityProps').appendChild(park);
+}
+function setupSignalStrip(){
+  $('sigdead').style.left=(TUN_S0/STRIP_TOTAL*100).toFixed(1)+'%';
+  $('sigdead').style.width=((TUN_S1-TUN_S0)/STRIP_TOTAL*100).toFixed(1)+'%';
+}
+
+/* ---------- EVENTS ---------- */
+let fired=new Set();
+const EV=[
+  [5.2,()=>tone(523,.11,'sine',.15)],
+  [7.0,()=>{tone(784,.09,'sine',.14);setTimeout(()=>tone(1046,.15,'sine',.13),100);}],
+  [13.5,()=>{tone(660,.09,'triangle',.13);setTimeout(()=>tone(660,.09,'triangle',.13),240);}],
+  [15.0,()=>{noise(.45,.3,1800,180);tone(440,.16,'square',.16,220);
+    setTimeout(()=>tone(330,.16,'square',.15,160),180);setTimeout(()=>tone(247,.28,'square',.14,110),360);}],
+  [17.0,()=>{noise(.8,.22,300,3200);tone(196,.45,'sawtooth',.1,392);}],
+  [18.5,()=>tone(1200,.06,'square',.085)],[19.4,()=>tone(1320,.06,'square',.085)],
+  [20.3,()=>tone(1450,.06,'square',.085)],[21.2,()=>tone(1570,.06,'square',.085)],
+  [22.1,()=>tone(1700,.06,'square',.085)],[23.0,()=>tone(1860,.06,'square',.085)],
+  [24.0,()=>startRiser()],
+  [33.0,()=>{noise(.28,.25,140,60,'lowpass');tone(110,.28,'sine',.16);}],
+  [37.0,()=>{stopRiser();noise(.2,.3,4200,900);tone(1568,.45,'sine',.22);
+    setTimeout(()=>tone(2093,.35,'sine',.13),65);}],
+  [45.0,()=>{tone(784,.13,'sine',.15);setTimeout(()=>tone(1046,.13,'sine',.15),120);
+    setTimeout(()=>tone(1318,.36,'sine',.13),250);}],
+  [54.0,()=>[392,494,587,784].forEach((f,i)=>setTimeout(()=>tone(f,1.3,'sine',.095),i*85))]
+];
+
+/* ---------- RENDER ---------- */
+let lastT=-1;
+function render(T){
+  const sc = T<T0?'sTitle' : T<T1?'sDemo':'sEnd';
+  ['sTitle','sDemo','sEnd'].forEach(i=>$(i).classList.toggle('on',i===sc));
+
+  if(sc==='sTitle'){fade($('tk'),T,.3,.6);fade($('tt'),T,.7,.8);fade($('ts'),T,1.5,.8);
+    $('tt').style.letterSpacing=lerp(.05,-.025,eo(inv(T,.7,2.6)))+'em';}
+
+  if(sc==='sDemo'){
+    const x=T-T0, s=SPEED*x, p=pt(s), h=headAt(s);
+    $('world').setAttribute('transform','translate(100,248) rotate('+(-90-h*180/Math.PI)+') translate('+(-p.x)+','+(-p.y)+')');
+
+    let tp=[];for(let k=0;k<=x;k+=.5){const q=pt(SPEED*k);tp.push(q.x.toFixed(1)+','+q.y.toFixed(1));}
+    tp.push(p.x.toFixed(1)+','+p.y.toFixed(1));$('trailTrue').setAttribute('points',tp.join(' '));
+
+    if(x>10){
+      let gp=[];for(let k=10;k<=x;k+=.5){const q=ghostAt(k);gp.push(q.x.toFixed(1)+','+q.y.toFixed(1));}
+      const g0=ghostAt(x);gp.push(g0.x.toFixed(1)+','+g0.y.toFixed(1));
+      $('trailGhost').setAttribute('points',gp.join(' '));
+      $('trailGhost').setAttribute('opacity',(eo(inv(x,10,11.4))*(1-.6*inv(x,35,39))).toFixed(2));
+      $('ghostDot').setAttribute('transform','translate('+g0.x+','+g0.y+')');
+      $('ghostDot').setAttribute('opacity',(eo(inv(x,10.4,11.6))*(1-inv(x,34.5,37))).toFixed(2));
+    } else {$('trailGhost').setAttribute('opacity',0);$('ghostDot').setAttribute('opacity',0);}
+
+    const sn=inv(x,32,35.5);
+    if(sn>0&&sn<1){
+      $('snapRing').setAttribute('transform','translate('+p.x+','+p.y+') scale('+lerp(.4,4,eo(sn))+')');
+      $('snapRing').setAttribute('opacity',(1-sn).toFixed(2));
+      sparks.forEach((c,i)=>{const a=i/sparks.length*6.283,r=lerp(0,48,eo(sn));
+        c.setAttribute('cx',p.x+Math.cos(a)*r);c.setAttribute('cy',p.y+Math.sin(a)*r);
+        c.setAttribute('opacity',(1-sn).toFixed(2));});
+    } else {$('snapRing').setAttribute('opacity',0);sparks.forEach(c=>c.setAttribute('opacity',0));}
+
+    $('tunlbl').setAttribute('opacity',(eo(inv(x,8,9))*(1-inv(x,41,42.5))).toFixed(2));
+
+    const lost = x>=10 && x<40.5;
+    const mode=$('mode');
+    if(lost){
+      mode.style.cssText='color:var(--amber);border-color:var(--amber);background:rgba(255,178,36,.12)';
+      mode.className='mchip t7';mode.innerHTML='<span>◆</span> AI DEAD RECKONING';
+      $('sats').textContent='SAT 0';
+      $('acc').textContent='±'+(x<35?Math.round(lerp(4,38,inv(x,10,24))):(4+Math.sin(x*2)*.5).toFixed(1))+' M';
+      $('fixlbl').textContent='INERTIAL';$('fixlbl').style.color='var(--amber)';
+      $('pill').style.cssText='color:var(--amber);border-color:rgba(255,178,36,.45);background:rgba(255,178,36,.1)';
+      $('pill').className='pill t7';
+      $('pilltxt').textContent = x<12?'GNSS OUTAGE':'DEAD RECKONING ACTIVE';
+      $('pilldot').textContent='◆';
+      $('srcline').textContent = x<32?'Inertial propagation only':'Inertial + map-matched';
+      $('srcline').style.color = x<32?'var(--amber)':'var(--green)';
+      $('srcsub').textContent = x<32?'0 satellites · 200 Hz IMU':'0 satellites · snapped to OSM';
+    } else {
+      mode.style.cssText='color:var(--green);border-color:var(--green);background:rgba(32,217,138,.1)';
+      mode.className='mchip t7';mode.innerHTML='<span>●</span> GNSS + INS';
+      const n=x<10?12:Math.round(lerp(0,11,eo(inv(x,40.5,44))));
+      $('sats').textContent='SAT '+n;
+      $('acc').textContent='±'+(x<10?3:(3+2*(1-inv(x,40.5,44)))).toFixed(1)+' M';
+      $('fixlbl').textContent='FIX OK';$('fixlbl').style.color='var(--green)';
+      $('pill').style.cssText='color:var(--green);border-color:rgba(32,217,138,.45);background:rgba(32,217,138,.1)';
+      $('pill').className='pill t7';
+      $('pilltxt').textContent= x<10?'SYSTEM NOMINAL':'GNSS RESTORED';$('pilldot').textContent='●';
+      $('srcline').textContent='GNSS fix + inertial smoothing';$('srcline').style.color='var(--green)';
+      $('srcsub').textContent=(x<10?12:11)+' satellites · 10 Hz output';
+    }
+    $('sigdot').style.left=clamp(s/STRIP_TOTAL*100,0,100).toFixed(1)+'%';
+    $('sigdot').style.background=lost?'#ffb224':'#4d9dff';
+    $('sigdot').style.boxShadow=lost?'0 0 6px rgba(255,178,36,.85)':'0 0 6px rgba(77,157,255,.85)';
+    if(x<10){$('sigzonelbl').textContent='TUNNEL AHEAD';$('sigzonelbl').style.color='var(--dim)';}
+    else if(x<40.5){$('sigzonelbl').textContent='NO SIGNAL — IN TUNNEL';$('sigzonelbl').style.color='var(--red)';}
+    else{$('sigzonelbl').textContent='TUNNEL CLEARED';$('sigzonelbl').style.color='var(--green)';}
+    $('halo').setAttribute('opacity',((lost?.15:.5)*(.75+.25*Math.sin(x*3))).toFixed(3));
+    $('carArrow').setAttribute('fill',lost?'#ffb224':'#4d9dff');
+
+    $('turnD').textContent=Math.max(40,Math.round(lerp(600,40,inv(x,0,46))))+' m';
+    $('eta').textContent=Math.max(.2,2.4-x*.045).toFixed(1)+' KM · '+Math.max(1,Math.round(12-x*.22))+' MIN';
+
+    let hh=HEADS[0][1];HEADS.forEach(k=>{if(x>=k[0])hh=k[1];});
+    $('dhead').textContent=hh;
+    $('dhead').style.color=(x>=10&&x<12)?'var(--red)':(x>=12&&x<32)?'var(--amber)':(x>=32)?'var(--green)':'var(--fg)';
+    let si=0;SUBS.forEach((k,i)=>{if(x>=k[0])si=i;});
+    if($('dsub').dataset.i!==String(si)){$('dsub').dataset.i=String(si);$('dsub').textContent=SUBS[si][1];}
+    $('dsub').style.opacity=eo(inv(x,SUBS[si][0],SUBS[si][0]+.45));
+    let st='01 / 06';STAGES.forEach(k=>{if(x>=k[0])st=k[1];});$('stageno').textContent=st;
+
+    const vib = x>10&&x<20?1 : x<10?.5 : .3;
+    let raw=[],fil=[];
+    for(let i=0;i<=60;i++){const b=Math.sin(x*8-i*.3)*7, n=(rnd(i,Math.floor(x*16)/16)-.5)*16*vib;
+      raw.push((i*4)+','+(22+b+n).toFixed(1));fil.push((i*4)+','+(22+b*.8).toFixed(1));}
+    $('wRaw').setAttribute('points',raw.join(' '));$('wFil').setAttribute('points',fil.join(' '));
+    $('wFil').setAttribute('opacity',eo(inv(x,14,15.4)).toFixed(2));
+    $('wRaw').setAttribute('opacity',(.8-.5*inv(x,14,15.4)).toFixed(2));
+    $('hz').textContent=lost?'200 HZ · INERTIAL':'200 HZ';
+
+    rows.forEach((r,i)=>{const on=eo(inv(x,13.5+i*.9,14+i*.9));
+      r.style.opacity=lerp(.3,1,on);
+      r.style.borderColor=on>.5?'rgba(255,255,255,.2)':'var(--line)';
+      r.children[0].style.background=on>.5?MODULES[i][2]:'#3d4a66';
+      r.children[0].style.boxShadow=on>.5?'0 0 7px '+MODULES[i][2]:'none';
+      r.children[2].style.opacity=on;});
+
+    const rm=rawM(x), im=x<10?2.8:(x<32?lerp(3,8.5,inv(x,10,32)):4.1+Math.sin(x*1.8)*.4);
+    $('e1').textContent=Math.round(rm)+' m';$('b1').style.width=(rm/183*100)+'%';
+    $('e2').textContent=im.toFixed(1)+' m';$('b2').style.width=clamp(im/183*100*4.4,0,100)+'%';
+
+    const shakeIn=inv(x,10,10.15),shakeOut=1-inv(x,10.15,11.9),shake=Math.min(shakeIn,shakeOut);
+    const sh=shake?Math.sin(x*72)*6.5*shake:0;
+    $('inner').style.transform=sh?'translate('+sh.toFixed(2)+'px,'+(Math.cos(x*63)*4.5*shake).toFixed(2)+'px)':'none';
+    $('glitch').style.opacity=(shake*.55*(.4+.6*Math.abs(Math.sin(x*42)))).toFixed(3);
+    const dang=(x>10&&x<36)?df(x)*.5:0;
+    $('vign').style.opacity=(Math.max(shake*.9,dang)*(.7+.3*Math.sin(x*4.5))).toFixed(3);
+    $('phoneAlert').style.opacity=(shake*(.3+.7*Math.abs(Math.sin(x*13)))).toFixed(3);
+    const flIn=inv(x,32,32.15),flOut=1-inv(x,32.15,33.2),fl=Math.min(flIn,flOut);
+    $('flash').style.opacity=(fl*fl*.82).toFixed(3);
+    const sw=inv(x,12,13.2);$('sweep').style.opacity=(sw>0&&sw<1)?1:0;
+    $('sweep').style.transform='translateY('+lerp(-22,480,sw)+'%)';
+    if(ambGain&&AC)ambGain.gain.setTargetAtTime(muted||!playing?0:.28+.5*dang+.25*shake,AC.currentTime,.25);
+  } else {
+    $('inner').style.transform='none';
+    ['glitch','vign','flash','phoneAlert'].forEach(i=>$(i).style.opacity=0);
+    $('sweep').style.opacity=0;
+    if(ambGain&&AC)ambGain.gain.setTargetAtTime(muted||!playing?0:(sc==='sEnd'?.18:0),AC.currentTime,.4);
+  }
+
+  if(sc==='sEnd'){const e=T-T1;fade($('ek'),e,.2,.45);fade($('et'),e,.45,.7);
+    fade($('estats'),e,1.2,.8);fade($('es'),e,2.1,.8);}
+
+  if(lastT>=0&&T>lastT)EV.forEach((ev,i)=>{if(ev[0]>lastT&&ev[0]<=T&&!fired.has(i)){fired.add(i);ev[1]();}});
+  lastT=T;
+  $('prog').style.width=(T/DUR*100)+'%';
+  $('time').textContent=fmt(T)+' / '+fmt(DUR);
+  let c=CH[0];CH.forEach(k=>{if(T>=k.t)c=k;});$('chap').textContent=c.n;
+}
+const fmt=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
+
+/* ---------- CLOCK ---------- */
+let T=0,playing=false,last=0;
+function loop(ts){if(playing){if(!last)last=ts;T+=Math.min(.05,(ts-last)/1000);last=ts;
+  if(T>=DUR){T=DUR;setPlay(false);}}else last=0;render(T);requestAnimationFrame(loop);}
+function setPlay(v){playing=v;last=0;
+  $('icon').innerHTML=v?'<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>':'<path d="M8 5v14l11-7z"/>';
+  if(!v)stopRiser();if(v&&AC&&AC.state==='suspended')AC.resume();}
+function seek(t){T=t;lastT=t;fired.clear();stopRiser();EV.forEach((e,i)=>{if(e[0]<=t)fired.add(i);});}
+$('play').onclick=()=>{initAudio();if(T>=DUR)seek(0);setPlay(!playing);$('poster').style.display='none';};
+$('mute').onclick=()=>{muted=!muted;
+  $('micon').innerHTML=muted?'<path d="M4 9v6h4l5 4V5L8 9H4zm15 3l2.5 2.5-1.4 1.4L17.6 13.4 15 16l-1.4-1.4L16.2 12l-2.6-2.6L15 8l2.6 2.6L20.1 8l1.4 1.4L19 12z"/>'
+   :'<path d="M4 9v6h4l5 4V5L8 9H4zm12.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z"/>';
+  if(master)master.gain.setTargetAtTime(muted?0:.55,AC.currentTime,.1);};
+$('track').onclick=e=>{const r=$('track').getBoundingClientRect();seek(clamp((e.clientX-r.left)/r.width,0,1)*DUR);};
+$('poster').onclick=()=>{initAudio();$('poster').style.display='none';setPlay(true);};
+addEventListener('keydown',e=>{
+  if(e.code==='Space'){e.preventDefault();initAudio();if(T>=DUR)seek(0);setPlay(!playing);$('poster').style.display='none';}
+  if(e.code==='ArrowRight')seek(clamp(T+3,0,DUR));
+  if(e.code==='ArrowLeft')seek(clamp(T-3,0,DUR));});
+CH.slice(1).forEach(c=>{const d=document.createElement('div');d.className='tick';
+  d.style.left=(c.t/DUR*100)+'%';$('track').appendChild(d);});
+function initWorldDecor(){ if(RL>0){buildTunnel();buildCity();setupSignalStrip();} }
+try{RL=routeEl.getTotalLength();}catch(e){}
+initWorldDecor();
+render(0);
+addEventListener('load',()=>{
+  if($('tunnelCasing').children.length===0){RL=routeEl.getTotalLength();initWorldDecor();render(0);}
+});
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
