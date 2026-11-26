@@ -1,0 +1,13 @@
+# Core inference + export
+torch>=2.0
+numpy>=1.24
+pandas>=2.0
+onnx>=1.15
+onnxruntime>=1.17
+
+# Training (optional on local dev; required if re-training)
+scipy>=1.11
+
+# TFLite step (needs Python 3.11/3.12 — see docs/tflite_setup.md)
+# tensorflow>=2.16
+# onnx2tf>=1.19

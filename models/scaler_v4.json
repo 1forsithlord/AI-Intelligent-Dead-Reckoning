@@ -1,0 +1,8 @@
+{
+  "placeholder": true,
+  "_warning": "REPLACE with real values from Kaggle. See docs/scaler_recovery.md.",
+  "x_mean": [0, 0, 0, 0, 0, 0, 0, 0, 0],
+  "x_scale": [1, 1, 1, 1, 1, 1, 1, 1, 1],
+  "v_mean": 0.0,
+  "v_std": 1.0
+}
